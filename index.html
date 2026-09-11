@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snic'Electric Fotovoltaico v5</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+
+        @media print {
+            body { background-color: #ffffff; }
+            nav, .no-print { display: none !important; }
+            #cotizacion-pdf { box-shadow: none !important; padding: 0 !important; width: 100% !important; margin: 0 !important; }
+            .container { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <!-- Navbar -->
+    <nav class="bg-blue-600 text-white p-4 shadow-md">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold flex items-center">
+                <img src="logo.webp" alt="Snic'Electric Logo" class="h-10 w-auto mr-3 bg-white rounded p-1 object-contain" onerror="this.style.display='none'">
+                Snic'Electric Fotovoltaico <span class="ml-2 text-sm bg-blue-800 px-2 py-1 rounded">v5</span>
+            </h1>
+            <div class="flex gap-2">
+                <button onclick="window.print()" class="bg-gray-100 hover:bg-white text-blue-900 font-bold py-2 px-4 rounded shadow flex items-center gap-1 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2m-4 0h4v5H6v-5z"></path></svg>
+                    Imprimir
+                </button>
+                <button onclick="exportPDF()" class="bg-yellow-500 hover:bg-yellow-400 text-blue-900 font-bold py-2 px-4 rounded shadow">
+                    Exportar a PDF
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-4 flex flex-col lg:flex-row gap-6 mt-4">
+        
+        <!-- Controles y Configuración -->
+        <div class="w-full lg:w-1/3 bg-white p-6 rounded-lg shadow-md no-print">
+            <h2 class="text-xl font-bold mb-4 border-b pb-2">Configuración del Proyecto</h2>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-semibold mb-1">Consumo Mensual Promedio (kWh)</label>
+                <input type="number" id="consumo" class="w-full border p-2 rounded focus:ring-blue-500 focus:border-blue-500" value="300" onchange="calcular()">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-semibold mb-1">Costo de Energía (COP/kWh)</label>
+                <input type="number" id="tarifa" class="w-full border p-2 rounded" value="850" onchange="calcular()">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-semibold mb-1">Ubicación (Horas Sol Pico - HSP)</label>
+                <select id="ubicacion" class="w-full border p-2 rounded" onchange="calcular()">
+                    <option value="5.2">Cúcuta (5.2 HSP)</option>
+                    <option value="5.5">Barranquilla (5.5 HSP)</option>
+                    <option value="4.0">Bogotá (4.0 HSP)</option>
+                    <option value="4.5">Medellín (4.5 HSP)</option>
+                    <option value="4.8">Cali (4.8 HSP)</option>
+                    <option value="4.5">Otra ciudad (Promedio 4.5 HSP)</option>
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-semibold mb-1">Modelo de Panel Solar</label>
+                <select id="modeloPanel" class="w-full border p-2 rounded" onchange="calcular()">
+                    <option value="panel450">450W Monocristalino PERC</option>
+                    <option value="panel550" selected>550W Monocristalino High-Eff</option>
+                    <option value="panel600">600W N-Type Bifacial</option>
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-semibold mb-1">Tipo de Instalación</label>
+                <select id="tipoInstalacion" class="w-full border p-2 rounded" onchange="actualizarTipoInstalacion()">
+                    <option value="on-grid">On-Grid (Inyección a red)</option>
+                    <option value="cero-inyeccion">On-Grid con Cero Inyección</option>
+                    <option value="hibrido">Híbrido (Con respaldo de baterías)</option>
+                    <option value="off-grid">Off-Grid (Aislado totalmente)</option>
+                </select>
+            </div>
+
+            <div class="mb-4 flex items-center gap-2 bg-blue-50 p-3 rounded border border-blue-200">
+                <input type="checkbox" id="incluirSmartMeter" class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500" onchange="calcular()">
+                <label for="incluirSmartMeter" class="text-sm font-semibold text-blue-900 cursor-pointer">Incluir Smart Meter / Cero Inyección</label>
+            </div>
+
+            <h2 class="text-xl font-bold mb-4 border-b pb-2 mt-6">Parámetros de Cableado y Estructura</h2>
+            <div class="mb-4">
+                <label class="block text-sm font-semibold mb-1">Distancia Paneles - Inversor (metros)</label>
+                <input type="number" id="distancia" class="w-full border p-2 rounded" value="15" onchange="calcular()">
+                <p class="text-xs text-gray-500 mt-1">Distancia del recorrido en un solo sentido.</p>
+            </div>
+
+            <h2 class="text-xl font-bold mb-4 border-b pb-2 mt-8">Editor de Precios Unitarios (COP)</h2>
+            <div id="editorPrecios" class="space-y-3 max-h-72 overflow-y-auto pr-2">
+                <!-- Se inyecta por JS -->
+            </div>
+        </div>
+
+        <!-- Resultados y Cotización -->
+        <div class="w-full lg:w-2/3 bg-white p-8 rounded-lg shadow-md" id="cotizacion-pdf">
+            
+            <div class="text-center mb-8 border-b pb-6">
+                <img src="logo.webp" alt="Snic'Electric Logo" class="h-32 mx-auto mb-4 object-contain" onerror="this.style.display='none'">
+                <h2 class="text-3xl font-bold text-blue-700">Propuesta Técnico-Comercial</h2>
+                <p class="text-gray-500 mt-1">Fecha de emisión: <span id="fechaEmision"></span></p>
+            </div>
+
+            <!-- Resumen Técnico Ampliado -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 bg-gray-50 p-4 rounded-lg border">
+                <div>
+                    <p class="text-sm text-gray-500">Energía Diaria Requerida</p>
+                    <p class="text-lg font-bold text-gray-800" id="resEnergia">0 kWh/día</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Potencia de Arreglo Solar</p>
+                    <p class="text-lg font-bold text-gray-800" id="resPotencia">0 Wp</p>
+                </div>
+                <div class="bg-blue-100 p-2 rounded border border-blue-200">
+                    <p class="text-sm text-blue-800 font-semibold">Calibre Cable DC (Recomendado)</p>
+                    <p class="text-lg font-bold text-blue-900" id="resCable">--</p>
+                </div>
+            </div>
+
+            <h3 class="text-lg font-bold border-b mb-3">Lista de Materiales y Equipos Detallada</h3>
+            <table class="w-full text-left border-collapse mb-6 text-sm">
+                <thead>
+                    <tr class="bg-blue-100 text-blue-800">
+                        <th class="p-2 border">Concepto / Elemento</th>
+                        <th class="p-2 border text-center">Cant.</th>
+                        <th class="p-2 border">V. Unit (COP)</th>
+                        <th class="p-2 border">V. Total (COP)</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaMateriales">
+                    <!-- Se inyecta por JS -->
+                </tbody>
+            </table>
+
+            <div class="flex flex-col items-end border-t pt-4">
+                <p class="text-2xl font-bold text-blue-700 mt-2">Inversión Total: <span id="totalVenta"></span></p>
+            </div>
+
+            <div class="mt-8 bg-green-50 p-4 rounded-lg border border-green-200">
+                <h3 class="text-lg font-bold text-green-800 mb-2">Análisis de Retorno de Inversión (ROI)</h3>
+                <p>Ahorro mensual estimado: <span id="ahorroMensual" class="font-bold"></span></p>
+                <p>Ahorro anual estimado: <span id="ahorroAnual" class="font-bold"></span></p>
+                <p>Tiempo de recuperación de la inversión: <span id="roiAños" class="font-bold text-xl text-green-700"></span> años</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Catálogo de precios y componentes individuales
+        const catalogo = {
+            panel450: { nombre: "Panel 450W Monocristalino PERC", potenciaW: 450, vmp: 34.5, imp: 13.0, precioCOP: 390000 },
+            panel550: { nombre: "Panel 550W Monocristalino High-Eff", potenciaW: 550, vmp: 41.0, imp: 13.5, precioCOP: 480000 },
+            panel600: { nombre: "Panel 600W N-Type Bifacial", potenciaW: 600, vmp: 44.0, imp: 13.8, precioCOP: 570000 },
+            inversorOnGrid: { nombre: "Inversor On-Grid (Growatt/SAJ) 5kW", precioCOP: 3800000 },
+            inversorHibrido: { nombre: "Inversor Híbrido (Deye/Must) 5kW", precioCOP: 5200000 },
+            bateria: { nombre: "Batería Litio 4.8kWh (Felicity/Deye)", precioCOP: 6200000 },
+            smartMeter: { nombre: "Smart Meter / Medidor de Cero Inyección", precioCOP: 650000 },
+            estructura: { nombre: "Estructura de Aluminio / Rieles / Anclajes (por Panel)", precioCOP: 95000 },
+            cableDC: { nombre: "Cable Solar Fotovoltaico DC (Metros)", precioCOP: 5500 },
+            cableAC: { nombre: "Cable AC encauchetado / Instalación eléctrica", precioCOP: 7500 },
+            mc4: { nombre: "Conectores Solar MC4 (Parejas)", precioCOP: 4500 },
+            termicoDC: { nombre: "Breaker / Térmico DC (Protección Arreglo)", precioCOP: 65000 },
+            termicoAC: { nombre: "Breaker / Térmico AC (Salida Inversor)", precioCOP: 55000 },
+            dps: { nombre: "Dispositivos de Protección contra Sobretensiones (DPS DC)", precioCOP: 120000 },
+            tierra: { nombre: "Kit Puesta a Tierra (Varilla Coppeweld + Cable desnudo + Conector)", precioCOP: 140000 }
+        };
+
+        document.getElementById('fechaEmision').innerText = new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
+        const formatCOP = (num) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(num);
+
+        function renderizarEditor() {
+            const editor = document.getElementById('editorPrecios');
+            editor.innerHTML = '';
+            for (let key in catalogo) {
+                editor.innerHTML += `
+                    <div>
+                        <label class="block text-xs text-gray-600">${catalogo[key].nombre}</label>
+                        <input type="number" class="w-full border p-1 rounded text-sm focus:ring-blue-500 focus:border-blue-500" 
+                               value="${catalogo[key].precioCOP}" 
+                               onchange="actualizarPrecio('${key}', this.value)">
+                    </div>
+                `;
+            }
+        }
+
+        function actualizarPrecio(key, valor) {
+            catalogo[key].precioCOP = parseFloat(valor);
+            calcular();
+        }
+
+        function actualizarTipoInstalacion() {
+            const tipo = document.getElementById('tipoInstalacion').value;
+            const checkboxMeter = document.getElementById('incluirSmartMeter');
+            if (tipo === 'cero-inyeccion') {
+                checkboxMeter.checked = true;
+            }
+            calcular();
+        }
+
+        function calcular() {
+            const consumoKwhMes = parseFloat(document.getElementById('consumo').value) || 0;
+            const tarifaKwh = parseFloat(document.getElementById('tarifa').value) || 0;
+            const hsp = parseFloat(document.getElementById('ubicacion').value) || 4.5;
+            const tipo = document.getElementById('tipoInstalacion').value;
+            const distancia = parseFloat(document.getElementById('distancia').value) || 15;
+            const panelKey = document.getElementById('modeloPanel').value;
+            const usarSmartMeter = document.getElementById('incluirSmartMeter').checked;
+            
+            const panelSeleccionado = catalogo[panelKey];
+
+            // Cálculos Técnicos
+            const consumoDiarioWh = (consumoKwhMes / 30) * 1000;
+            const energiaGenerarWh = consumoDiarioWh * 1.20; 
+            const potenciaArregloW = energiaGenerarWh / hsp;
+            
+            let cantPaneles = Math.ceil(potenciaArregloW / panelSeleccionado.potenciaW);
+            if (cantPaneles < 1) cantPaneles = 1; 
+            
+            const cantInversores = 1; 
+            let cantBaterias = 0;
+
+            if (tipo === 'hibrido' || tipo === 'off-grid') {
+                const energiaRespaldoWh = consumoDiarioWh * 0.5;
+                cantBaterias = Math.ceil(energiaRespaldoWh / 4800); 
+                if (cantBaterias === 0) cantBaterias = 1;
+            }
+
+            // --- CÁLCULO DE CABLEADO Y ACCESORIOS INDIVIDUALES ---
+            let voltajeString = cantPaneles * panelSeleccionado.vmp;
+            const caidaVoltajeMax = voltajeString * 0.02;
+            const conductividadCobre = 56;
+            
+            let seccionMm2 = (2 * distancia * panelSeleccionado.imp) / (conductividadCobre * caidaVoltajeMax);
+            let calibreRecomendado = seccionMm2 <= 4 ? "4 mm² (12 AWG)" : (seccionMm2 <= 6 ? "6 mm² (10 AWG)" : (seccionMm2 <= 10 ? "10 mm² (8 AWG)" : "16 mm² (6 AWG)"));
+
+            // Metrajes y cantidades específicas
+            const metrosCableDC = distancia * 2 * cantPaneles > 20 ? distancia * 2 : 20; // Ida y vuelta por string con margen
+            const metrosCableAC = 10; // Cableado promedio tablero-inversor
+            const cantEstructuras = cantPaneles;
+            const cantMC4 = Math.ceil(cantPaneles / 2) + 1; // Parejas de conectores
+
+            // Actualizar UI Técnica
+            document.getElementById('resEnergia').innerText = (energiaGenerarWh / 1000).toFixed(2) + " kWh/día";
+            document.getElementById('resPotencia').innerText = potenciaArregloW.toFixed(0) + " Wp (" + cantPaneles + " paneles)";
+            document.getElementById('resCable').innerText = calibreRecomendado;
+
+            // Generar Tabla de Cotización Detallada
+            const tbody = document.getElementById('tablaMateriales');
+            tbody.innerHTML = '';
+            let totalVenta = 0;
+
+            // 1. Paneles
+            const tPaneles = cantPaneles * panelSeleccionado.precioCOP;
+            totalVenta += tPaneles;
+            tbody.innerHTML += `<tr><td class="p-2 border">${panelSeleccionado.nombre}</td><td class="p-2 border text-center">${cantPaneles}</td><td class="p-2 border">${formatCOP(panelSeleccionado.precioCOP)}</td><td class="p-2 border">${formatCOP(tPaneles)}</td></tr>`;
+
+            // 2. Estructuras
+            const tEstructuras = cantEstructuras * catalogo.estructura.precioCOP;
+            totalVenta += tEstructuras;
+            tbody.innerHTML += `<tr><td class="p-2 border">${catalogo.estructura.nombre}</td><td class="p-2 border text-center">${cantEstructuras}</td><td class="p-2 border">${formatCOP(catalogo.estructura.precioCOP)}</td><td class="p-2 border">${formatCOP(tEstructuras)}</td></tr>`;
+
+            // 3. Inversor
+            const inv = (tipo === 'hibrido') ? catalogo.inversorHibrido : catalogo.inversorOnGrid;
+            const tInv = cantInversores * inv.precioCOP;
+            totalVenta += tInv;
+            tbody.innerHTML += `<tr><td class="p-2 border">${inv.nombre}</td><td class="p-2 border text-center">${cantInversores}</td><td class="p-2 border">${formatCOP(inv.precioCOP)}</td><td class="p-2 border">${formatCOP(tInv)}</td></tr>`;
+
+            // 4. Baterías
+            if (cantBaterias > 0) {
+                const tBat = cantBaterias * catalogo.bateria.precioCOP;
+                totalVenta += tBat;
+                tbody.innerHTML += `<tr><td class="p-2 border">${catalogo.bateria.nombre}</td><td class="p-2 border text-center">${cantBaterias}</td><td class="p-2 border">${formatCOP(catalogo.bateria.precioCOP)}</td><td class="p-2 border">${formatCOP(tBat)}</td></tr>`;
+            }
+
+            // 5. Smart Meter
+            if (usarSmartMeter) {
+                totalVenta += catalogo.smartMeter.precioCOP;
+                tbody.innerHTML += `<tr><td class="p-2 border">${catalogo.smartMeter.nombre}</td><td class="p-2 border text-center">1</td><td class="p-2 border">${formatCOP(catalogo.smartMeter.precioCOP)}</td><td class="p-2 border">${formatCOP(catalogo.smartMeter.precioCOP)}</td></tr>`;
+            }
+
+            // 6. Cable DC
+            const tCableDC = metrosCableDC * catalogo.cableDC.precioCOP;
+            totalVenta += tCableDC;
+            tbody.innerHTML += `<tr><td class="p-2 border">${catalogo.cableDC.nombre}</td><td class="p-2 border text-center">${metrosCableDC} m</td><td class="p-2 border">${formatCOP(catalogo.cableDC.precioCOP)}</td><td class="p-2 border">${formatCOP(tCableDC)}</td></tr>`;
+
+            // 7. Cable AC
+            const tCableAC = metrosCableAC * catalogo.cableAC.precioCOP;
+            totalVenta += tCableAC;
+            tbody.innerHTML += `<tr><td class="p-2 border">${catalogo.cableAC.nombre}</td><td class="p-2 border text-center">${metrosCableAC} m</td><td class="p-2 border">${formatCOP(catalogo.cableAC.precioCOP)}</td><td class="p-2 border">${formatCOP(tCableAC)}</td></tr>`;
+
+            // 8. Conectores MC4
+            const tMC4 = cantMC4 * catalogo.mc4.precioCOP;
+            totalVenta += tMC4;
+            tbody.innerHTML += `<tr><td class="p-2 border">${catalogo.mc4.nombre}</td><td class="p-2 border text-center">${cantMC4}</td><td class="p-2 border">${formatCOP(catalogo.mc4.precioCOP)}</td><td class="p-2 border">${formatCOP(tMC4)}</td></tr>`;
+
+            // 9. Protecciones y Cuadro Eléctrico (Térmicos DC, AC, DPS, Puesta a tierra)
+            totalVenta += catalogo.termicoDC.precioCOP;
+            tbody.innerHTML += `<tr><td class="p-2 border">${catalogo.termicoDC.nombre}</td><td class="p-2 border text-center">1</td><td class="p-2 border">${formatCOP(catalogo.termicoDC.precioCOP)}</td><td class="p-2 border">${formatCOP(catalogo.termicoDC.precioCOP)}</td></tr>`;
+
+            totalVenta += catalogo.termicoAC.precioCOP;
+            tbody.innerHTML += `<tr><td class="p-2 border">${catalogo.termicoAC.nombre}</td><td class="p-2 border text-center">1</td><td class="p-2 border">${formatCOP(catalogo.termicoAC.precioCOP)}</td><td class="p-2 border">${formatCOP(catalogo.termicoAC.precioCOP)}</td></tr>`;
+
+            totalVenta += catalogo.dps.precioCOP;
+            tbody.innerHTML += `<tr><td class="p-2 border">${catalogo.dps.nombre}</td><td class="p-2 border text-center">1</td><td class="p-2 border">${formatCOP(catalogo.dps.precioCOP)}</td><td class="p-2 border">${formatCOP(catalogo.dps.precioCOP)}</td></tr>`;
+
+            totalVenta += catalogo.tierra.precioCOP;
+            tbody.innerHTML += `<tr><td class="p-2 border">${catalogo.tierra.nombre}</td><td class="p-2 border text-center">1</td><td class="p-2 border">${formatCOP(catalogo.tierra.precioCOP)}</td><td class="p-2 border">${formatCOP(catalogo.tierra.precioCOP)}</td></tr>`;
+
+            // Total Final directo en la propuesta
+            document.getElementById('totalVenta').innerText = formatCOP(totalVenta);
+
+            // Cálculos ROI
+            const ahorroMensual = tipo === 'off-grid' ? (consumoKwhMes * tarifaKwh) : (consumoKwhMes * tarifaKwh * 0.9);
+            const ahorroAnual = ahorroMensual * 12;
+            const roi = totalVenta / ahorroAnual;
+
+            document.getElementById('ahorroMensual').innerText = formatCOP(ahorroMensual);
+            document.getElementById('ahorroAnual').innerText = formatCOP(ahorroAnual);
+            document.getElementById('roiAños').innerText = roi.toFixed(1);
+        }
+
+        function exportPDF() {
+            const element = document.getElementById('cotizacion-pdf');
+            const opt = {
+                margin:       10,
+                filename:     "Cotizacion_SnicElectric.pdf",
+                image:        { type: 'webp', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+
+        renderizarEditor();
+        calcular();
+    </script>
+</body>
+</html>

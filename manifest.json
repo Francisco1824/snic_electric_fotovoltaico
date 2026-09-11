@@ -1,0 +1,26 @@
+{
+  "short_name": "Snic'Electric",
+  "name": "Snic'Electric Fotovoltaico v5",
+  "icons": [
+    {
+      "src": "logo.webp",
+      "type": "image/webp",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo.webp",
+      "type": "image/webp",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/snic_electric_fotovoltaico/index.html",
+  "background_color": "#f3f4f6",
+  "theme_color": "#2563eb",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/snic_electric_fotovoltaico/",
+  "lang": "es-CO",
+  "description": "Calculadora y generador de cotizaciones para proyectos fotovoltaicos Snic'Electric"
+}

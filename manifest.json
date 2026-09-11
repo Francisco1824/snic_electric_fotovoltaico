@@ -3,14 +3,14 @@
   "name": "Snic'Electric Fotovoltaico v5",
   "icons": [
     {
-      "src": "logo.webp",
-      "type": "image/webp",
+      "src": "logo-192x192.png",
+      "type": "image/png",
       "sizes": "192x192",
       "purpose": "any maskable"
     },
     {
-      "src": "logo.webp",
-      "type": "image/webp",
+      "src": "logo-512x512.png",
+      "type": "image/png",
       "sizes": "512x512",
       "purpose": "any maskable"
     }
